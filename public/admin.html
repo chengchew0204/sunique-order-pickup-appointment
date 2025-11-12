@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Staff Admin Portal - Appointment Management</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="admin.css">
+</head>
+<body>
+    <!-- Password Protection Screen -->
+    <div id="loginScreen" class="login-screen">
+        <div class="login-container">
+            <h1>Staff Admin Portal</h1>
+            <div class="form-group">
+                <input 
+                    type="password" 
+                    id="passwordInput" 
+                    placeholder="Enter password"
+                    autocomplete="off"
+                >
+            </div>
+            <button id="loginBtn" class="btn btn-primary">
+                Login
+            </button>
+            <div id="loginMessage" class="message"></div>
+        </div>
+    </div>
+
+    <!-- Admin Dashboard -->
+    <div id="adminDashboard" class="admin-dashboard" style="display: none;">
+        <header class="admin-header">
+            <div class="admin-header-content">
+                <h1>Staff Admin Portal</h1>
+                <button id="logoutBtn" class="btn btn-secondary">Logout</button>
+            </div>
+        </header>
+
+        <div class="admin-container">
+            <!-- Tab Navigation -->
+            <div class="tab-navigation">
+                <button class="tab-btn active" data-tab="calendar">
+                    Calendar View
+                </button>
+                <button class="tab-btn" data-tab="list">
+                    List View
+                </button>
+            </div>
+
+            <!-- Calendar View Tab -->
+            <div id="calendarTab" class="tab-content active">
+                <div class="card">
+                    <div class="loading" id="calendarLoading">
+                        <div class="spinner"></div>
+                        <p>Loading appointments...</p>
+                    </div>
+                    
+                    <div id="calendarViewContainer" style="display: none;">
+                        <div class="calendar-header">
+                            <button id="adminPrevMonth" class="calendar-nav-btn">‹</button>
+                            <h3 id="adminCurrentMonth" class="calendar-month"></h3>
+                            <button id="adminNextMonth" class="calendar-nav-btn">›</button>
+                        </div>
+                        <div class="calendar-weekdays">
+                            <div class="weekday">Sun</div>
+                            <div class="weekday">Mon</div>
+                            <div class="weekday">Tue</div>
+                            <div class="weekday">Wed</div>
+                            <div class="weekday">Thu</div>
+                            <div class="weekday">Fri</div>
+                            <div class="weekday">Sat</div>
+                        </div>
+                        <div id="adminCalendarDays" class="calendar-days"></div>
+                        
+                        <!-- Appointments for selected date -->
+                        <div id="dateAppointments" class="date-appointments"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- List View Tab -->
+            <div id="listTab" class="tab-content">
+                <div class="card">
+                    <div class="list-controls">
+                        <div class="search-box">
+                            <input 
+                                type="text" 
+                                id="searchInput" 
+                                placeholder="Search by order number..."
+                                autocomplete="off"
+                            >
+                        </div>
+                        <div class="filter-info">
+                            <span id="appointmentCount">Total: 0 appointments</span>
+                        </div>
+                    </div>
+                    
+                    <div class="loading" id="listLoading">
+                        <div class="spinner"></div>
+                        <p>Loading appointments...</p>
+                    </div>
+                    
+                    <div id="appointmentsList" style="display: none;">
+                        <table class="appointments-table">
+                            <thead>
+                                <tr>
+                                    <th>Order Number</th>
+                                    <th>Date</th>
+                                    <th>Time</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="appointmentsTableBody">
+                            </tbody>
+                        </table>
+                        <div id="noAppointments" class="no-data" style="display: none;">
+                            <p>No appointments found</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reschedule Modal -->
+    <div id="rescheduleModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Reschedule Appointment</h2>
+                <button class="modal-close" id="closeRescheduleModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>Order Number: <strong id="rescheduleOrderNumber"></strong></p>
+                <p>Current Time: <strong id="rescheduleCurrentTime"></strong></p>
+                
+                <div class="loading" id="rescheduleLoading">
+                    <div class="spinner"></div>
+                    <p>Loading available slots...</p>
+                </div>
+                
+                <div id="rescheduleCalendar" style="display: none;">
+                    <div class="calendar-header">
+                        <button id="reschedulePrevMonth" class="calendar-nav-btn">‹</button>
+                        <h3 id="rescheduleCurrentMonth" class="calendar-month"></h3>
+                        <button id="rescheduleNextMonth" class="calendar-nav-btn">›</button>
+                    </div>
+                    <div class="calendar-weekdays">
+                        <div class="weekday">Sun</div>
+                        <div class="weekday">Mon</div>
+                        <div class="weekday">Tue</div>
+                        <div class="weekday">Wed</div>
+                        <div class="weekday">Thu</div>
+                        <div class="weekday">Fri</div>
+                        <div class="weekday">Sat</div>
+                    </div>
+                    <div id="rescheduleCalendarDays" class="calendar-days"></div>
+                    
+                    <div id="rescheduleTimeSlots" class="time-slots-section">
+                        <h3 id="rescheduleSelectedDate" class="selected-date-title"></h3>
+                        <div id="rescheduleTimeSlotsContainer" class="time-slots-grid"></div>
+                    </div>
+                </div>
+                
+                <div id="rescheduleMessage" class="message"></div>
+            </div>
+            <div class="modal-footer">
+                <button id="confirmRescheduleBtn" class="btn btn-primary" style="display: none;">
+                    Confirm Reschedule
+                </button>
+                <button id="cancelRescheduleBtn" class="btn btn-secondary">
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="admin.js"></script>
+</body>
+</html>
+

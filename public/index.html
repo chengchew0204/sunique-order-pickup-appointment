@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Appointment Scheduling System</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <img src="img/logo.png" alt="Sunique Logo" class="logo">
+                <h1>Order Pickup Appointment</h1>
+            </div>
+        </header>
+
+        <!-- Step 1: Order Validation -->
+        <section id="step-validation" class="step active">
+            <div class="card">
+                <h2>Step1: Enter Your Order Number</h2>
+                <div class="form-group">
+                    <label for="orderNumber">Order Number</label>
+                    <input 
+                        type="text" 
+                        id="orderNumber" 
+                        placeholder="Enter your order number"
+                        autocomplete="off"
+                    >
+                </div>
+                <button id="validateBtn" class="btn btn-primary">
+                    Schedule
+                </button>
+                <div id="validationMessage" class="message"></div>
+            </div>
+        </section>
+
+        <!-- Step 2: Time Slot Selection -->
+        <section id="step-slots" class="step">
+            <div class="card">
+                <h2>Select Pickup Date & Time</h2>
+                <div id="orderInfo" class="order-info"></div>
+                
+                <div class="loading" id="slotsLoading">
+                    <div class="spinner"></div>
+                    <p>Loading available dates...</p>
+                </div>
+                
+                <!-- Calendar View -->
+                <div id="calendarContainer" class="calendar-container">
+                    <div class="calendar-header">
+                        <button id="prevMonth" class="calendar-nav-btn">‹</button>
+                        <h3 id="currentMonth" class="calendar-month"></h3>
+                        <button id="nextMonth" class="calendar-nav-btn">›</button>
+                    </div>
+                    <div class="calendar-weekdays">
+                        <div class="weekday">Sun</div>
+                        <div class="weekday">Mon</div>
+                        <div class="weekday">Tue</div>
+                        <div class="weekday">Wed</div>
+                        <div class="weekday">Thu</div>
+                        <div class="weekday">Fri</div>
+                        <div class="weekday">Sat</div>
+                    </div>
+                    <div id="calendarDays" class="calendar-days"></div>
+                </div>
+                
+                <!-- Time Slots for Selected Date -->
+                <div id="timeSlotsSection" class="time-slots-section">
+                    <h3 id="selectedDateTitle" class="selected-date-title"></h3>
+                    <div id="timeSlotsContainer" class="time-slots-grid"></div>
+                </div>
+                
+                <!-- Email Input (shown after time slot selection) -->
+                <div id="emailInputSection" class="email-input-section" style="display: none;">
+                    <div class="form-group">
+                        <label for="customerEmail">Email Address <span style="color: #ef4444;">*</span></label>
+                        <input 
+                            type="email" 
+                            id="customerEmail" 
+                            class="form-input" 
+                            placeholder="Enter your email to receive confirmation"
+                            required
+                        />
+                        <small class="form-hint">You will receive a confirmation email at this address.</small>
+                    </div>
+                </div>
+                
+                <div class="actions">
+                    <button id="backToValidationBtn" class="btn btn-secondary">
+                        Back
+                    </button>
+                </div>
+                
+                <div id="selectionMessage" class="message"></div>
+            </div>
+        </section>
+
+        <!-- Step 3: Confirmation -->
+        <section id="step-confirmation" class="step">
+            <div class="card confirmation-card">
+                <div class="success-icon">✓</div>
+                <h2>Appointment Confirmed!</h2>
+                <div id="confirmationDetails" class="confirmation-details"></div>
+                <button id="newAppointmentBtn" class="btn btn-primary">
+                    Schedule Another Appointment
+                </button>
+            </div>
+        </section>
+    </div>
+
+    <script src="app.js"></script>
+    <script src="calendar.js"></script>
+</body>
+</html>
+
