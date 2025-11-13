@@ -29,7 +29,11 @@ module.exports = {
   
   // CORS Configuration
   corsOptions: {
-    origin: process.env.FRONTEND_URL || '*',
+    origin: [
+      'http://localhost:3000',
+      'https://sunique-pickup-appointment.netlify.app'
+    ],
+    credentials: true,
     optionsSuccessStatus: 200
   },
   
