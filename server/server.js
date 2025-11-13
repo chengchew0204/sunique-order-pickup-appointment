@@ -303,6 +303,7 @@ app.post('/api/book-appointment', async (req, res) => {
         'OrderNumber': orderNumber,
         'Appointment_Date': formatDateForExcel(slotTime),
         'Appointment_Time': formatTimeForExcel(slotTime),
+        'Customer_Email': customerEmail,
         'Created_Time': new Date().toISOString()
       };
       
@@ -408,6 +409,7 @@ app.get('/api/admin/appointments', async (req, res) => {
       orderNumber: appt['OrderNumber'],
       appointmentDate: appt['Appointment_Date'],
       appointmentTime: appt['Appointment_Time'],
+      customerEmail: appt['Customer_Email'] || '',
       createdTime: appt['Created_Time'] || ''
     }));
     
@@ -454,11 +456,33 @@ app.delete('/api/admin/appointments/:orderNumber', async (req, res) => {
       });
     }
     
+    // Save appointment details for email notification
+    const cancelledAppointment = appointments[appointmentIndex];
+    const customerEmail = cancelledAppointment['Customer_Email'];
+    const appointmentDate = cancelledAppointment['Appointment_Date'];
+    const appointmentTime = cancelledAppointment['Appointment_Time'];
+    
     // Remove the appointment
     appointments.splice(appointmentIndex, 1);
     
     // Update the file
     await updateAppointments(appointments);
+    
+    // Send cancellation email to customer and warehouse staff
+    if (customerEmail) {
+      const emailResult = await emailService.sendCancellationEmail({
+        orderNumber,
+        appointmentDate,
+        appointmentTime,
+        customerEmail
+      });
+      
+      if (!emailResult.success) {
+        console.warn('Failed to send cancellation email:', emailResult.message);
+      }
+    } else {
+      console.warn('No customer email found for cancelled appointment:', orderNumber);
+    }
     
     res.json({
       success: true,
@@ -512,16 +536,40 @@ app.put('/api/admin/appointments/:orderNumber', async (req, res) => {
       });
     }
     
+    // Save old appointment details for email notification
+    const oldAppointment = appointments[appointmentIndex];
+    const customerEmail = oldAppointment['Customer_Email'];
+    const oldAppointmentDate = oldAppointment['Appointment_Date'];
+    const oldAppointmentTime = oldAppointment['Appointment_Time'];
+    
     // Update the appointment
     appointments[appointmentIndex] = {
       'OrderNumber': orderNumber,
       'Appointment_Date': formatDateForExcel(newSlotTime),
       'Appointment_Time': formatTimeForExcel(newSlotTime),
+      'Customer_Email': customerEmail,
       'Created_Time': appointments[appointmentIndex]['Created_Time'] || new Date().toISOString()
     };
     
     // Update the file
     await updateAppointments(appointments);
+    
+    // Send reschedule email to customer and warehouse staff
+    if (customerEmail) {
+      const emailResult = await emailService.sendRescheduleEmail({
+        orderNumber,
+        oldAppointmentDate,
+        oldAppointmentTime,
+        newPickupTime: newSlotTime,
+        customerEmail
+      });
+      
+      if (!emailResult.success) {
+        console.warn('Failed to send reschedule email:', emailResult.message);
+      }
+    } else {
+      console.warn('No customer email found for rescheduled appointment:', orderNumber);
+    }
     
     res.json({
       success: true,

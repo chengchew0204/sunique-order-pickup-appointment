@@ -60,8 +60,8 @@ async function fetchAppointments() {
     // If file doesn't exist yet, return empty structure
     if (error.message.includes('not found') || error.message.includes('could not be found')) {
       console.log('Appointments file not found, will create on first booking');
-      // Return empty structure matching the Excel columns: OrderNumber, Appointment_Date, Appointment_Time, Created_Time
-      return 'OrderNumber,Appointment_Date,Appointment_Time,Created_Time\n';
+      // Return empty structure matching the Excel columns: OrderNumber, Appointment_Date, Appointment_Time, Customer_Email, Created_Time
+      return 'OrderNumber,Appointment_Date,Appointment_Time,Customer_Email,Created_Time\n';
     }
     console.error('Error fetching appointments file:', error);
     throw error;
@@ -224,7 +224,7 @@ function stringifyExcel(records) {
     const workbook = XLSX.utils.book_new();
     
     // Define the column headers that should always be present
-    const headers = ['OrderNumber', 'Appointment_Date', 'Appointment_Time', 'Created_Time'];
+    const headers = ['OrderNumber', 'Appointment_Date', 'Appointment_Time', 'Customer_Email', 'Created_Time'];
     
     // Convert records to worksheet with explicit headers
     const worksheet = XLSX.utils.json_to_sheet(records, {
@@ -252,7 +252,7 @@ function stringifyExcel(records) {
 async function updateAppointments(appointments) {
   try {
     // Define standard column headers for appointments
-    const standardColumns = ['OrderNumber', 'Appointment_Date', 'Appointment_Time', 'Created_Time'];
+    const standardColumns = ['OrderNumber', 'Appointment_Date', 'Appointment_Time', 'Customer_Email', 'Created_Time'];
     
     // Check if appointments file is Excel or CSV
     let fileContent;
