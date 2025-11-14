@@ -195,9 +195,10 @@ class EmailService:
                     
                     <p><strong>Important Information:</strong></p>
                     <ul>
-                        <li>Please arrive within your scheduled time slot</li>
-                        <li>Bring your order number for reference</li>
-                        <li>Contact us if you need to reschedule</li>
+                        <li>Please keep the email confirmation or a screenshot for your reference and have it ready when picking up your order.</li>
+                        <li>To cancel or modify your appointment, please contact Sunique at (972) 245-3309.</li>
+                        <li>The appointment is reserved for 10 minutes. If you are delayed more than 10 minutes, the appointment will be void.</li>
+                        <li>We reserve the right to adjust the time. We will do our best to get your order loaded, but we do not guarantee it will be ready at the exact scheduled time.</li>
                     </ul>
                     
                     <div class="footer">
@@ -438,7 +439,7 @@ class EmailService:
                     </div>
                     
                     <p><strong>Need to Schedule a New Appointment?</strong></p>
-                    <p>If you need to schedule a new pickup appointment, please use our online booking system or contact us directly.</p>
+                    <p>If you need to schedule a new pickup appointment, please use our <a href="https://sunique-pickup-appointment.netlify.app/">online booking system</a> or contact us directly.</p>
                     
                     <div class="footer">
                         <p>If you have any questions, please contact us:</p>
@@ -562,9 +563,10 @@ class EmailService:
                     
                     <p><strong>Important Information:</strong></p>
                     <ul>
-                        <li>Please arrive within your new scheduled time slot</li>
-                        <li>Bring your order number for reference</li>
-                        <li>Contact us if you have any questions</li>
+                        <li>Please keep the email confirmation or a screenshot for your reference and have it ready when picking up your order.</li>
+                        <li>To cancel or modify your appointment, please contact Sunique at (972) 245-3309.</li>
+                        <li>The appointment is reserved for 10 minutes. If you are delayed more than 10 minutes, the appointment will be void.</li>
+                        <li>We reserve the right to adjust the time. We will do our best to get your order loaded, but we do not guarantee it will be ready at the exact scheduled time.</li>
                     </ul>
                     
                     <div class="footer">

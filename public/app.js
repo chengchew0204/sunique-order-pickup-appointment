@@ -349,7 +349,7 @@ function showConfirmationStep(appointment, customerEmail) {
         
         <p style="margin-top: 24px; font-weight: 600;">Important Instructions:</p>
         <ol style="text-align: left; line-height: 1.8; margin-left: 20px;">
-            <li>Please screenshot this confirmation for your reference and prepare it when picking up.</li>
+            <li>Please keep the email confirmation or a screenshot for your reference and have it ready when picking up your order.</li>
             <li>To cancel or modify your appointment, please contact Sunique at (972) 245-3309.</li>
             <li>The appointment is reserved for 10 minutes. If you are delayed more than 10 minutes, the appointment will be void.</li>
             <li>We reserve the right to adjust the time. We will do our best to get your order loaded, but we do not guarantee it will be ready at the exact scheduled time.</li>
