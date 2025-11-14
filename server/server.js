@@ -34,7 +34,7 @@ app.use(express.static('public'));
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'OK', message: 'Server is running' });
+  res.json({ status: 'OK', message: 'Server is running', version: '1.0.1' });
 });
 
 // Admin authentication endpoint
