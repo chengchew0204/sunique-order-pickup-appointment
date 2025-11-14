@@ -1,38 +1,68 @@
-const { ClientSecretCredential } = require('@azure/identity');
+const msal = require('@azure/msal-node');
 const { Client } = require('@microsoft/microsoft-graph-client');
-const { TokenCredentialAuthenticationProvider } = require('@microsoft/microsoft-graph-client/authProviders/azureTokenCredentials');
 const config = require('./config');
 
 let graphClient = null;
+let msalClient = null;
+
+function getMsalClient() {
+  if (msalClient) {
+    return msalClient;
+  }
+
+  const msalConfig = {
+    auth: {
+      clientId: config.msalConfig.auth.clientId,
+      authority: `https://login.microsoftonline.com/${config.msalConfig.auth.tenantId}`,
+      clientSecret: config.msalConfig.auth.clientSecret,
+    },
+    system: {
+      networkClient: {
+        // Add timeout for Railway
+        timeout: 30000
+      }
+    }
+  };
+
+  msalClient = new msal.ConfidentialClientApplication(msalConfig);
+  return msalClient;
+}
+
+async function getAccessToken() {
+  const client = getMsalClient();
+  
+  const tokenRequest = {
+    scopes: ['https://graph.microsoft.com/.default'],
+  };
+
+  try {
+    const response = await client.acquireTokenByClientCredential(tokenRequest);
+    return response.accessToken;
+  } catch (error) {
+    console.error('Error acquiring token:', error);
+    throw error;
+  }
+}
 
 function getAuthenticatedClient() {
   if (graphClient) {
     return graphClient;
   }
 
-  const credential = new ClientSecretCredential(
-    config.msalConfig.auth.tenantId,
-    config.msalConfig.auth.clientId,
-    config.msalConfig.auth.clientSecret,
-    {
-      // Add retry options for Railway network issues
-      retryOptions: {
-        maxRetries: 5,
-        maxRetryDelayInMs: 10000,
-        retryDelayInMs: 2000
+  graphClient = Client.init({
+    authProvider: async (done) => {
+      try {
+        const token = await getAccessToken();
+        done(null, token);
+      } catch (error) {
+        console.error('Authentication error:', error);
+        done(error, null);
       }
-    }
-  );
-
-  const authProvider = new TokenCredentialAuthenticationProvider(credential, {
-    scopes: ['https://graph.microsoft.com/.default']
-  });
-
-  graphClient = Client.initWithMiddleware({
-    authProvider: authProvider,
-    // Add middleware options for better error handling
+    },
+    defaultVersion: 'v1.0',
+    debugLogging: false,
     fetchOptions: {
-      timeout: 30000 // 30 second timeout
+      timeout: 30000
     }
   });
 
