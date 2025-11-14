@@ -40,6 +40,6 @@ class Config:
     CORS_ORIGINS = [
         'http://localhost:3000',
         'https://sunique-pickup-appointment.netlify.app',
-        'https://sunique-order-pickup-appointment.onrender.com'
+        'https://sunique-order-pickup-appointment-production.up.railway.app'
     ]
 
