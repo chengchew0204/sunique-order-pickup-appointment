@@ -67,7 +67,7 @@ class EmailService:
                     'ccRecipients': [
                         {
                             'emailAddress': {
-                                'address': 'zackwu204@gmail.com'
+                                'address': 'warehouse@suniquecabinetry.com'
                             }
                         }
                     ]
@@ -247,7 +247,7 @@ class EmailService:
                     'ccRecipients': [
                         {
                             'emailAddress': {
-                                'address': 'zackwu204@gmail.com'
+                                'address': 'warehouse@suniquecabinetry.com'
                             }
                         }
                     ]
@@ -316,7 +316,7 @@ class EmailService:
                     'ccRecipients': [
                         {
                             'emailAddress': {
-                                'address': 'zackwu204@gmail.com'
+                                'address': 'warehouse@suniquecabinetry.com'
                             }
                         }
                     ]
