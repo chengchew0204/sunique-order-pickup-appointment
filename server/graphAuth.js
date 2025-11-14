@@ -13,7 +13,15 @@ function getAuthenticatedClient() {
   const credential = new ClientSecretCredential(
     config.msalConfig.auth.tenantId,
     config.msalConfig.auth.clientId,
-    config.msalConfig.auth.clientSecret
+    config.msalConfig.auth.clientSecret,
+    {
+      // Add retry options for Railway network issues
+      retryOptions: {
+        maxRetries: 5,
+        maxRetryDelayInMs: 10000,
+        retryDelayInMs: 2000
+      }
+    }
   );
 
   const authProvider = new TokenCredentialAuthenticationProvider(credential, {
@@ -21,7 +29,11 @@ function getAuthenticatedClient() {
   });
 
   graphClient = Client.initWithMiddleware({
-    authProvider: authProvider
+    authProvider: authProvider,
+    // Add middleware options for better error handling
+    fetchOptions: {
+      timeout: 30000 // 30 second timeout
+    }
   });
 
   return graphClient;
