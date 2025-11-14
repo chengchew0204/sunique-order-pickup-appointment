@@ -1,6 +1,6 @@
 [[redirects]]
   from = "/api/*"
-  to = "https://sunique-order-pickup-appointment-production.up.railway.app/api/:splat"
+  to = "https://sunique-order-pickup-appointment.onrender.com/api/:splat"
   status = 200
   force = true
 

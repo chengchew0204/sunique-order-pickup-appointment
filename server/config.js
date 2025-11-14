@@ -32,7 +32,8 @@ module.exports = {
   corsOptions: {
     origin: [
       'http://localhost:3000',
-      'https://sunique-pickup-appointment.netlify.app'
+      'https://sunique-pickup-appointment.netlify.app',
+      'https://sunique-order-pickup-appointment.onrender.com'
     ],
     credentials: true,
     optionsSuccessStatus: 200
