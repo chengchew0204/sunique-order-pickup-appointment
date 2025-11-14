@@ -5,10 +5,10 @@ from datetime import datetime
 class EmailService:
     def __init__(self, config):
         self.config = config
-        self.client_id = config.OUTLOOK_CLIENT_ID
-        self.client_secret = config.OUTLOOK_CLIENT_SECRET
-        self.tenant_id = config.OUTLOOK_TENANT_ID
-        self.sender_email = config.OUTLOOK_SENDER_EMAIL
+        self.client_id = config.get('OUTLOOK_CLIENT_ID')
+        self.client_secret = config.get('OUTLOOK_CLIENT_SECRET')
+        self.tenant_id = config.get('OUTLOOK_TENANT_ID')
+        self.sender_email = config.get('OUTLOOK_SENDER_EMAIL', 'info@suniquecabinetry.com')
         
         if not self.client_id or not self.client_secret or not self.tenant_id:
             print('Outlook API credentials are not properly configured')

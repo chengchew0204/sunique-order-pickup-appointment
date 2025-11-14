@@ -11,7 +11,7 @@ app = Flask(__name__, static_folder='../public', static_url_path='')
 app.config.from_object(Config)
 
 # CORS Configuration
-CORS(app, origins=Config.CORS_ORIGINS, supports_credentials=True)
+CORS(app, origins=app.config.get('CORS_ORIGINS', []), supports_credentials=True)
 
 # Initialize services
 sharepoint_service = SharePointService(app.config)
@@ -79,7 +79,12 @@ def generate_time_slots():
     slots = []
     today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
     
-    for day_offset in range(Config.TIME_SLOT_DAYS_AHEAD):
+    days_ahead = app.config.get('TIME_SLOT_DAYS_AHEAD', 8)
+    start_hour = app.config.get('TIME_SLOT_START_HOUR', 9)
+    end_hour = app.config.get('TIME_SLOT_END_HOUR', 17)
+    interval_minutes = app.config.get('TIME_SLOT_INTERVAL_MINUTES', 30)
+    
+    for day_offset in range(days_ahead):
         current_date = today + timedelta(days=day_offset)
         
         # Skip weekends (Saturday=5, Sunday=6)
@@ -87,8 +92,8 @@ def generate_time_slots():
             continue
         
         # Generate time slots for this day
-        for hour in range(Config.TIME_SLOT_START_HOUR, Config.TIME_SLOT_END_HOUR):
-            for minute in range(0, 60, Config.TIME_SLOT_INTERVAL_MINUTES):
+        for hour in range(start_hour, end_hour):
+            for minute in range(0, 60, interval_minutes):
                 slot_time = current_date.replace(hour=hour, minute=minute)
                 slots.append(slot_time.isoformat() + 'Z')
     
@@ -161,7 +166,7 @@ def admin_login():
                 'message': 'Password is required'
             }), 400
         
-        if password == Config.ADMIN_PASSWORD:
+        if password == app.config.get('ADMIN_PASSWORD'):
             return jsonify({
                 'success': True,
                 'message': 'Authentication successful'
@@ -193,16 +198,18 @@ def validate_order():
             }), 400
         
         # Fetch and parse orders file
-        orders_content = sharepoint_service.get_file_content(Config.ORDERS_FILE_PATH)
+        orders_file_path = app.config.get('ORDERS_FILE_PATH')
+        orders_content = sharepoint_service.get_file_content(orders_file_path)
         
-        if Config.ORDERS_FILE_PATH.endswith('.xlsx') or Config.ORDERS_FILE_PATH.endswith('.xls'):
+        if orders_file_path.endswith('.xlsx') or orders_file_path.endswith('.xls'):
             orders = sharepoint_service.parse_excel_file(orders_content)
         else:
             orders = sharepoint_service.parse_csv_file(orders_content)
         
         # Fetch appointments file
+        appointments_file_path = app.config.get('APPOINTMENTS_FILE_PATH')
         try:
-            appts_content = sharepoint_service.get_file_content(Config.APPOINTMENTS_FILE_PATH)
+            appts_content = sharepoint_service.get_file_content(appointments_file_path)
             appointments = sharepoint_service.parse_csv_file(appts_content)
         except:
             appointments = []
@@ -238,7 +245,8 @@ def validate_order():
                     appointments,
                     ['OrderNumber', 'Appointment_Date', 'Appointment_Time', 'Customer_Email', 'Created_Time']
                 )
-                sharepoint_service.upload_file_content(Config.APPOINTMENTS_FILE_PATH, csv_bytes)
+                appointments_file_path = app.config.get('APPOINTMENTS_FILE_PATH')
+                sharepoint_service.upload_file_content(appointments_file_path, csv_bytes)
             
             return jsonify({
                 'success': False,
@@ -293,8 +301,9 @@ def get_available_slots():
         all_slots = generate_time_slots()
         
         # Fetch appointments to get booked slots
+        appointments_file_path = app.config.get('APPOINTMENTS_FILE_PATH')
         try:
-            appts_content = sharepoint_service.get_file_content(Config.APPOINTMENTS_FILE_PATH)
+            appts_content = sharepoint_service.get_file_content(appointments_file_path)
             appointments = sharepoint_service.parse_csv_file(appts_content)
         except:
             appointments = []
@@ -354,16 +363,18 @@ def book_appointment():
         
         try:
             # Fetch orders
-            orders_content = sharepoint_service.get_file_content(Config.ORDERS_FILE_PATH)
+            orders_file_path = app.config.get('ORDERS_FILE_PATH')
+            orders_content = sharepoint_service.get_file_content(orders_file_path)
             
-            if Config.ORDERS_FILE_PATH.endswith('.xlsx') or Config.ORDERS_FILE_PATH.endswith('.xls'):
+            if orders_file_path.endswith('.xlsx') or orders_file_path.endswith('.xls'):
                 orders = sharepoint_service.parse_excel_file(orders_content)
             else:
                 orders = sharepoint_service.parse_csv_file(orders_content)
             
             # Fetch appointments
+            appointments_file_path = app.config.get('APPOINTMENTS_FILE_PATH')
             try:
-                appts_content = sharepoint_service.get_file_content(Config.APPOINTMENTS_FILE_PATH)
+                appts_content = sharepoint_service.get_file_content(appointments_file_path)
                 appointments = sharepoint_service.parse_csv_file(appts_content)
             except:
                 appointments = []
@@ -435,11 +446,12 @@ def book_appointment():
                 appointments.append(new_appointment)
             
             # Save appointments
+            appointments_file_path = app.config.get('APPOINTMENTS_FILE_PATH')
             csv_bytes = sharepoint_service.records_to_csv_bytes(
                 appointments,
                 ['OrderNumber', 'Appointment_Date', 'Appointment_Time', 'Customer_Email', 'Created_Time']
             )
-            sharepoint_service.upload_file_content(Config.APPOINTMENTS_FILE_PATH, csv_bytes)
+            sharepoint_service.upload_file_content(appointments_file_path, csv_bytes)
             
             # Unlock slot
             unlock_slot(order_number, slot_time)
@@ -482,16 +494,18 @@ def book_appointment():
 def get_admin_appointments():
     try:
         # Fetch orders
-        orders_content = sharepoint_service.get_file_content(Config.ORDERS_FILE_PATH)
+        orders_file_path = app.config.get('ORDERS_FILE_PATH')
+        orders_content = sharepoint_service.get_file_content(orders_file_path)
         
-        if Config.ORDERS_FILE_PATH.endswith('.xlsx') or Config.ORDERS_FILE_PATH.endswith('.xls'):
+        if orders_file_path.endswith('.xlsx') or orders_file_path.endswith('.xls'):
             orders = sharepoint_service.parse_excel_file(orders_content)
         else:
             orders = sharepoint_service.parse_csv_file(orders_content)
         
         # Fetch appointments
+        appointments_file_path = app.config.get('APPOINTMENTS_FILE_PATH')
         try:
-            appts_content = sharepoint_service.get_file_content(Config.APPOINTMENTS_FILE_PATH)
+            appts_content = sharepoint_service.get_file_content(appointments_file_path)
             appointments = sharepoint_service.parse_csv_file(appts_content)
         except:
             appointments = []
@@ -520,11 +534,12 @@ def get_admin_appointments():
         # Update if needed
         if needs_update:
             print(f"Updating appointments file: removed {len(appointments) - len(cleaned_appointments)} fulfilled orders")
+            appointments_file_path = app.config.get('APPOINTMENTS_FILE_PATH')
             csv_bytes = sharepoint_service.records_to_csv_bytes(
                 cleaned_appointments,
                 ['OrderNumber', 'Appointment_Date', 'Appointment_Time', 'Customer_Email', 'Created_Time']
             )
-            sharepoint_service.upload_file_content(Config.APPOINTMENTS_FILE_PATH, csv_bytes)
+            sharepoint_service.upload_file_content(appointments_file_path, csv_bytes)
         
         # Format response
         valid_appointments = [{
@@ -562,7 +577,8 @@ def cancel_appointment(order_number):
         
         # Fetch appointments
         try:
-            appts_content = sharepoint_service.get_file_content(Config.APPOINTMENTS_FILE_PATH)
+            appointments_file_path = app.config.get('APPOINTMENTS_FILE_PATH')
+            appts_content = sharepoint_service.get_file_content(appointments_file_path)
             appointments = sharepoint_service.parse_csv_file(appts_content)
         except:
             appointments = []
@@ -584,11 +600,12 @@ def cancel_appointment(order_number):
             }), 404
         
         # Update file
+        appointments_file_path = app.config.get('APPOINTMENTS_FILE_PATH')
         csv_bytes = sharepoint_service.records_to_csv_bytes(
             new_appointments,
             ['OrderNumber', 'Appointment_Date', 'Appointment_Time', 'Customer_Email', 'Created_Time']
         )
-        sharepoint_service.upload_file_content(Config.APPOINTMENTS_FILE_PATH, csv_bytes)
+        sharepoint_service.upload_file_content(appointments_file_path, csv_bytes)
         
         # TODO: Send cancellation email (optional)
         
@@ -621,7 +638,8 @@ def reschedule_appointment(order_number):
         
         # Fetch appointments
         try:
-            appts_content = sharepoint_service.get_file_content(Config.APPOINTMENTS_FILE_PATH)
+            appointments_file_path = app.config.get('APPOINTMENTS_FILE_PATH')
+            appts_content = sharepoint_service.get_file_content(appointments_file_path)
             appointments = sharepoint_service.parse_csv_file(appts_content)
         except:
             appointments = []
@@ -662,11 +680,12 @@ def reschedule_appointment(order_number):
         }
         
         # Save file
+        appointments_file_path = app.config.get('APPOINTMENTS_FILE_PATH')
         csv_bytes = sharepoint_service.records_to_csv_bytes(
             appointments,
             ['OrderNumber', 'Appointment_Date', 'Appointment_Time', 'Customer_Email', 'Created_Time']
         )
-        sharepoint_service.upload_file_content(Config.APPOINTMENTS_FILE_PATH, csv_bytes)
+        sharepoint_service.upload_file_content(appointments_file_path, csv_bytes)
         
         # TODO: Send reschedule email (optional)
         
@@ -690,7 +709,7 @@ def reschedule_appointment(order_number):
         }), 500
 
 if __name__ == '__main__':
-    port = Config.PORT
+    port = app.config.get('PORT', 3000)
     print(f'Appointment system server running on port {port}')
     print(f'Health check: http://localhost:{port}/api/health')
     app.run(host='0.0.0.0', port=port, debug=False)

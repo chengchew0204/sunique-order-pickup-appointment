@@ -8,11 +8,11 @@ from datetime import datetime, timedelta
 class SharePointService:
     def __init__(self, config):
         self.config = config
-        self.client_id = config.CLIENT_ID
-        self.client_secret = config.CLIENT_SECRET
-        self.tenant_id = config.TENANT_ID
-        self.site_id = config.SHAREPOINT_SITE_ID
-        self.site_url = config.SHAREPOINT_SITE_URL
+        self.client_id = config.get('CLIENT_ID')
+        self.client_secret = config.get('CLIENT_SECRET')
+        self.tenant_id = config.get('TENANT_ID')
+        self.site_id = config.get('SHAREPOINT_SITE_ID')
+        self.site_url = config.get('SHAREPOINT_SITE_URL')
         
         self.authority = f"https://login.microsoftonline.com/{self.tenant_id}"
         self.scope = ['https://graph.microsoft.com/.default']
