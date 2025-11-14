@@ -49,23 +49,23 @@ def unlock_slot(order_number, slot_time):
         del slot_locks[lock_key]
 
 def find_order_by_number(orders, order_number):
-    """Find order in orders list by order number"""
-    order_num_str = str(order_number).strip()
+    """Find order in orders list by order number (case-insensitive)"""
+    order_num_str = str(order_number).strip().upper()
     
     for order in orders:
         if 'Ready Order Number' in order:
-            ready_num = str(order['Ready Order Number']).strip()
+            ready_num = str(order['Ready Order Number']).strip().upper()
             if ready_num == order_num_str:
                 return order
     return None
 
 def find_appointment_by_order_number(appointments, order_number):
-    """Find appointment in appointments list by order number"""
-    order_num_str = str(order_number).strip()
+    """Find appointment in appointments list by order number (case-insensitive)"""
+    order_num_str = str(order_number).strip().upper()
     
     for appt in appointments:
         if 'OrderNumber' in appt:
-            appt_num = str(appt['OrderNumber']).strip()
+            appt_num = str(appt['OrderNumber']).strip().upper()
             if appt_num == order_num_str:
                 return appt
     return None
@@ -306,7 +306,7 @@ def validate_order():
             existing_appt = find_appointment_by_order_number(appointments, order_number)
             if existing_appt:
                 appointments = [a for a in appointments 
-                               if str(a.get('OrderNumber', '')).strip() != str(order_number).strip()]
+                               if str(a.get('OrderNumber', '')).strip().upper() != str(order_number).strip().upper()]
                 appointments_file_path = app.config.get('APPOINTMENTS_FILE_PATH')
                 save_appointments_file(
                     appointments,
@@ -506,7 +506,7 @@ def book_appointment():
             
             # Add or update appointment
             if existing_appt:
-                appointments = [a if str(a.get('OrderNumber', '')).strip() != str(order_number).strip() 
+                appointments = [a if str(a.get('OrderNumber', '')).strip().upper() != str(order_number).strip().upper() 
                                else new_appointment for a in appointments]
             else:
                 appointments.append(new_appointment)
@@ -654,7 +654,7 @@ def cancel_appointment(order_number):
         new_appointments = []
         
         for appt in appointments:
-            if str(appt.get('OrderNumber', '')).strip() == str(order_number).strip():
+            if str(appt.get('OrderNumber', '')).strip().upper() == str(order_number).strip().upper():
                 cancelled_appt = appt
             else:
                 new_appointments.append(appt)
@@ -731,7 +731,7 @@ def reschedule_appointment(order_number):
         # Find appointment
         appt_index = None
         for i, appt in enumerate(appointments):
-            if str(appt.get('OrderNumber', '')).strip() == str(order_number).strip():
+            if str(appt.get('OrderNumber', '')).strip().upper() == str(order_number).strip().upper():
                 appt_index = i
                 break
         
