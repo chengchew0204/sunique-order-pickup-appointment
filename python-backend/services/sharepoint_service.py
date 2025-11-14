@@ -41,11 +41,9 @@ class SharePointService:
             token = self.get_access_token()
             headers = {'Authorization': f'Bearer {token}'}
             
-            # Use site ID if available, otherwise look it up
-            if self.site_id:
-                site_id = self.site_id
-            else:
-                site_id = self._get_site_id()
+            # Always look up site ID from URL to ensure correct format
+            # Microsoft Graph site IDs need to be in format: hostname,siteId,webId
+            site_id = self._get_site_id()
             
             url = f"https://graph.microsoft.com/v1.0/sites/{site_id}/drive/root:{file_path}:/content"
             response = requests.get(url, headers=headers)
@@ -68,11 +66,8 @@ class SharePointService:
                 token = self.get_access_token()
                 headers = {'Authorization': f'Bearer {token}'}
                 
-                # Use site ID if available, otherwise look it up
-                if self.site_id:
-                    site_id = self.site_id
-                else:
-                    site_id = self._get_site_id()
+                # Always look up site ID from URL to ensure correct format
+                site_id = self._get_site_id()
                 
                 url = f"https://graph.microsoft.com/v1.0/sites/{site_id}/drive/root:{file_path}:/content"
                 response = requests.put(url, headers=headers, data=content)
