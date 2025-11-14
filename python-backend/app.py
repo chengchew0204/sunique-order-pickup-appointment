@@ -74,10 +74,30 @@ def is_order_ready(order):
     """Check if order is ready for pickup"""
     return bool(order.get('Ready Order Number'))
 
+def is_excel_file(file_path):
+    """Check if file is Excel based on extension"""
+    return file_path.lower().endswith(('.xlsx', '.xls'))
+
+def parse_appointments_file(file_content, file_path):
+    """Parse appointments file (CSV or Excel based on extension)"""
+    if is_excel_file(file_path):
+        return sharepoint_service.parse_excel_file(file_content)
+    else:
+        return sharepoint_service.parse_csv_file(file_content)
+
+def save_appointments_file(appointments, file_path, fieldnames):
+    """Save appointments to file (CSV or Excel based on extension)"""
+    if is_excel_file(file_path):
+        file_bytes = sharepoint_service.records_to_excel_bytes(appointments, fieldnames)
+    else:
+        file_bytes = sharepoint_service.records_to_csv_bytes(appointments, fieldnames)
+    sharepoint_service.upload_file_content(file_path, file_bytes)
+
 def generate_time_slots():
     """Generate all available time slots for the next days"""
     slots = []
-    today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+    # Use UTC time to avoid timezone conversion issues
+    today = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
     
     days_ahead = app.config.get('TIME_SLOT_DAYS_AHEAD', 8)
     start_hour = app.config.get('TIME_SLOT_START_HOUR', 9)
@@ -91,11 +111,17 @@ def generate_time_slots():
         if current_date.weekday() >= 5:
             continue
         
-        # Generate time slots for this day
-        for hour in range(start_hour, end_hour):
+        # Generate time slots for this day in UTC
+        for hour in range(start_hour, end_hour + 1):
             for minute in range(0, 60, interval_minutes):
+                # Skip slots after end_hour (e.g., skip 5:30 PM if end is 5:00 PM)
+                if hour == end_hour and minute > 0:
+                    continue
+                    
                 slot_time = current_date.replace(hour=hour, minute=minute)
-                slots.append(slot_time.isoformat() + 'Z')
+                # Skip past time slots
+                if slot_time > datetime.utcnow():
+                    slots.append(slot_time.isoformat() + 'Z')
     
     return slots
 
@@ -134,6 +160,46 @@ def format_time_for_excel(iso_time):
     """Format ISO datetime to time string for Excel"""
     dt = datetime.fromisoformat(iso_time.replace('Z', '+00:00'))
     return dt.strftime('%I:%M %p')
+
+def combine_date_and_time_to_iso(date_str, time_str):
+    """Combine date and time strings back to ISO format"""
+    try:
+        # Parse date (format: MM/DD/YYYY or YYYY-MM-DD)
+        if '/' in date_str:
+            parts = date_str.split('/')
+            month = int(parts[0])
+            day = int(parts[1])
+            year = int(parts[2])
+        elif '-' in date_str:
+            parts = date_str.split('-')
+            year = int(parts[0])
+            month = int(parts[1])
+            day = int(parts[2])
+        else:
+            raise ValueError(f"Unknown date format: {date_str}")
+        
+        # Parse time (format: "9:00 AM" or "09:00 AM")
+        time_lower = time_str.lower().strip()
+        is_pm = 'pm' in time_lower
+        is_am = 'am' in time_lower
+        
+        time_only = time_lower.replace('am', '').replace('pm', '').strip()
+        hour, minute = time_only.split(':')
+        hour = int(hour)
+        minute = int(minute)
+        
+        if is_pm and hour < 12:
+            hour += 12
+        if is_am and hour == 12:
+            hour = 0
+        
+        # Create UTC datetime
+        dt = datetime(year, month, day, hour, minute, 0, 0)
+        return dt.isoformat() + 'Z'
+        
+    except Exception as e:
+        print(f"Error combining date and time: {e}, date: {date_str}, time: {time_str}")
+        return datetime.now().isoformat() + 'Z'
 
 # Static file serving
 @app.route('/')
@@ -210,7 +276,7 @@ def validate_order():
         appointments_file_path = app.config.get('APPOINTMENTS_FILE_PATH')
         try:
             appts_content = sharepoint_service.get_file_content(appointments_file_path)
-            appointments = sharepoint_service.parse_csv_file(appts_content)
+            appointments = parse_appointments_file(appts_content, appointments_file_path)
         except:
             appointments = []
         
@@ -241,12 +307,12 @@ def validate_order():
             if existing_appt:
                 appointments = [a for a in appointments 
                                if str(a.get('OrderNumber', '')).strip() != str(order_number).strip()]
-                csv_bytes = sharepoint_service.records_to_csv_bytes(
+                appointments_file_path = app.config.get('APPOINTMENTS_FILE_PATH')
+                save_appointments_file(
                     appointments,
+                    appointments_file_path,
                     ['OrderNumber', 'Appointment_Date', 'Appointment_Time', 'Customer_Email', 'Created_Time']
                 )
-                appointments_file_path = app.config.get('APPOINTMENTS_FILE_PATH')
-                sharepoint_service.upload_file_content(appointments_file_path, csv_bytes)
             
             return jsonify({
                 'success': False,
@@ -304,7 +370,7 @@ def get_available_slots():
         appointments_file_path = app.config.get('APPOINTMENTS_FILE_PATH')
         try:
             appts_content = sharepoint_service.get_file_content(appointments_file_path)
-            appointments = sharepoint_service.parse_csv_file(appts_content)
+            appointments = parse_appointments_file(appts_content, appointments_file_path)
         except:
             appointments = []
         
@@ -375,7 +441,7 @@ def book_appointment():
             appointments_file_path = app.config.get('APPOINTMENTS_FILE_PATH')
             try:
                 appts_content = sharepoint_service.get_file_content(appointments_file_path)
-                appointments = sharepoint_service.parse_csv_file(appts_content)
+                appointments = parse_appointments_file(appts_content, appointments_file_path)
             except:
                 appointments = []
             
@@ -447,11 +513,11 @@ def book_appointment():
             
             # Save appointments
             appointments_file_path = app.config.get('APPOINTMENTS_FILE_PATH')
-            csv_bytes = sharepoint_service.records_to_csv_bytes(
+            save_appointments_file(
                 appointments,
+                appointments_file_path,
                 ['OrderNumber', 'Appointment_Date', 'Appointment_Time', 'Customer_Email', 'Created_Time']
             )
-            sharepoint_service.upload_file_content(appointments_file_path, csv_bytes)
             
             # Unlock slot
             unlock_slot(order_number, slot_time)
@@ -506,7 +572,7 @@ def get_admin_appointments():
         appointments_file_path = app.config.get('APPOINTMENTS_FILE_PATH')
         try:
             appts_content = sharepoint_service.get_file_content(appointments_file_path)
-            appointments = sharepoint_service.parse_csv_file(appts_content)
+            appointments = parse_appointments_file(appts_content, appointments_file_path)
         except:
             appointments = []
         
@@ -535,11 +601,11 @@ def get_admin_appointments():
         if needs_update:
             print(f"Updating appointments file: removed {len(appointments) - len(cleaned_appointments)} fulfilled orders")
             appointments_file_path = app.config.get('APPOINTMENTS_FILE_PATH')
-            csv_bytes = sharepoint_service.records_to_csv_bytes(
+            save_appointments_file(
                 cleaned_appointments,
+                appointments_file_path,
                 ['OrderNumber', 'Appointment_Date', 'Appointment_Time', 'Customer_Email', 'Created_Time']
             )
-            sharepoint_service.upload_file_content(appointments_file_path, csv_bytes)
         
         # Format response
         valid_appointments = [{
@@ -579,7 +645,7 @@ def cancel_appointment(order_number):
         try:
             appointments_file_path = app.config.get('APPOINTMENTS_FILE_PATH')
             appts_content = sharepoint_service.get_file_content(appointments_file_path)
-            appointments = sharepoint_service.parse_csv_file(appts_content)
+            appointments = parse_appointments_file(appts_content, appointments_file_path)
         except:
             appointments = []
         
@@ -601,13 +667,31 @@ def cancel_appointment(order_number):
         
         # Update file
         appointments_file_path = app.config.get('APPOINTMENTS_FILE_PATH')
-        csv_bytes = sharepoint_service.records_to_csv_bytes(
+        save_appointments_file(
             new_appointments,
+            appointments_file_path,
             ['OrderNumber', 'Appointment_Date', 'Appointment_Time', 'Customer_Email', 'Created_Time']
         )
-        sharepoint_service.upload_file_content(appointments_file_path, csv_bytes)
         
-        # TODO: Send cancellation email (optional)
+        # Send cancellation email
+        customer_email = cancelled_appt.get('Customer_Email', '')
+        if customer_email:
+            try:
+                # Reconstruct ISO datetime from date and time
+                appt_date = cancelled_appt.get('Appointment_Date', '')
+                appt_time = cancelled_appt.get('Appointment_Time', '')
+                original_iso_time = combine_date_and_time_to_iso(appt_date, appt_time)
+                
+                email_result = email_service.send_cancellation_email(
+                    order_number,
+                    original_iso_time,
+                    customer_email
+                )
+                
+                if not email_result.get('success'):
+                    print(f"Failed to send cancellation email: {email_result.get('message')}")
+            except Exception as e:
+                print(f"Error sending cancellation email: {e}")
         
         return jsonify({
             'success': True,
@@ -640,7 +724,7 @@ def reschedule_appointment(order_number):
         try:
             appointments_file_path = app.config.get('APPOINTMENTS_FILE_PATH')
             appts_content = sharepoint_service.get_file_content(appointments_file_path)
-            appointments = sharepoint_service.parse_csv_file(appts_content)
+            appointments = parse_appointments_file(appts_content, appointments_file_path)
         except:
             appointments = []
         
@@ -681,13 +765,31 @@ def reschedule_appointment(order_number):
         
         # Save file
         appointments_file_path = app.config.get('APPOINTMENTS_FILE_PATH')
-        csv_bytes = sharepoint_service.records_to_csv_bytes(
+        save_appointments_file(
             appointments,
+            appointments_file_path,
             ['OrderNumber', 'Appointment_Date', 'Appointment_Time', 'Customer_Email', 'Created_Time']
         )
-        sharepoint_service.upload_file_content(appointments_file_path, csv_bytes)
         
-        # TODO: Send reschedule email (optional)
+        # Send reschedule email
+        if customer_email:
+            try:
+                # Reconstruct old ISO datetime from old appointment
+                old_appt_date = old_appointment.get('Appointment_Date', '')
+                old_appt_time = old_appointment.get('Appointment_Time', '')
+                old_iso_time = combine_date_and_time_to_iso(old_appt_date, old_appt_time)
+                
+                email_result = email_service.send_reschedule_email(
+                    order_number,
+                    old_iso_time,
+                    new_slot_time,
+                    customer_email
+                )
+                
+                if not email_result.get('success'):
+                    print(f"Failed to send reschedule email: {email_result.get('message')}")
+            except Exception as e:
+                print(f"Error sending reschedule email: {e}")
         
         return jsonify({
             'success': True,

@@ -1,5 +1,53 @@
+# Dependencies
 node_modules/
-.env
-.DS_Store
-*.log
+python-backend/venv/
+python-backend/__pycache__/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
 
+# Environment variables
+.env
+.env.local
+.env.*.local
+python-backend/.env
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Build outputs
+dist/
+build/
+*.egg-info/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Testing
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Temporary files
+*.tmp
+*.bak
+*.csv
+*.xlsx
+downloaded-file.xlsx
+sample-orders.csv
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Local Netlify folder
+.netlify

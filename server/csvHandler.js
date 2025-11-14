@@ -60,8 +60,20 @@ async function fetchAppointments() {
     // If file doesn't exist yet, return empty structure
     if (error.message.includes('not found') || error.message.includes('could not be found')) {
       console.log('Appointments file not found, will create on first booking');
-      // Return empty structure matching the Excel columns: OrderNumber, Appointment_Date, Appointment_Time, Customer_Email, Created_Time
-      return 'OrderNumber,Appointment_Date,Appointment_Time,Customer_Email,Created_Time\n';
+      
+      // Return empty structure based on file type
+      if (isExcelFile(config.sharepoint.appointmentsFilePath)) {
+        // Create empty Excel file with headers
+        const XLSX = require('xlsx');
+        const workbook = XLSX.utils.book_new();
+        const headers = ['OrderNumber', 'Appointment_Date', 'Appointment_Time', 'Customer_Email', 'Created_Time'];
+        const worksheet = XLSX.utils.aoa_to_sheet([headers]);
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Appointments');
+        return XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+      } else {
+        // Return CSV headers
+        return 'OrderNumber,Appointment_Date,Appointment_Time,Customer_Email,Created_Time\n';
+      }
     }
     console.error('Error fetching appointments file:', error);
     throw error;
@@ -416,10 +428,18 @@ function generateTimeSlots() {
     }
     
     // Generate time slots for this day
+    // Use UTC methods to avoid timezone conversion issues
     for (let hour = config.timeSlots.startHour; hour < config.timeSlots.endHour; hour++) {
       for (let minute = 0; minute < 60; minute += config.timeSlots.intervalMinutes) {
-        const slotDate = new Date(currentDate);
-        slotDate.setHours(hour, minute, 0, 0);
+        const slotDate = new Date(Date.UTC(
+          currentDate.getFullYear(),
+          currentDate.getMonth(),
+          currentDate.getDate(),
+          hour,
+          minute,
+          0,
+          0
+        ));
         
         // Skip past time slots
         if (slotDate > new Date()) {

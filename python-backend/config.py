@@ -34,7 +34,7 @@ class Config:
     TIME_SLOT_START_HOUR = 9  # 9 AM
     TIME_SLOT_END_HOUR = 17   # 5 PM
     TIME_SLOT_INTERVAL_MINUTES = 30
-    TIME_SLOT_DAYS_AHEAD = 8  # Number of days to show for booking
+    TIME_SLOT_DAYS_AHEAD = 15  # Number of days to show for booking
     
     # CORS Configuration
     CORS_ORIGINS = [

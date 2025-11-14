@@ -87,7 +87,8 @@ function formatDate(dateStr) {
         weekday: 'long',
         month: 'long',
         day: 'numeric',
-        year: 'numeric'
+        year: 'numeric',
+        timeZone: 'UTC'
     };
     return date.toLocaleString('en-US', options);
 }
@@ -105,49 +106,66 @@ function formatDateTime(isoString) {
         day: 'numeric',
         hour: 'numeric',
         minute: '2-digit',
-        hour12: true
+        hour12: true,
+        timeZone: 'UTC'
     };
     return date.toLocaleString('en-US', options);
 }
 
 function formatTimeFromISO(isoString) {
     const date = new Date(isoString);
-    const options = {
-        hour: 'numeric',
-        minute: '2-digit',
-        hour12: true
-    };
-    return date.toLocaleString('en-US', options);
+    // Use UTC time directly to avoid timezone conversion
+    const hours = date.getUTCHours();
+    const minutes = date.getUTCMinutes();
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    const displayHours = hours % 12 || 12;
+    const displayMinutes = minutes.toString().padStart(2, '0');
+    return `${displayHours}:${displayMinutes} ${ampm}`;
 }
 
 function combineDateAndTime(dateStr, timeStr) {
     try {
-        let dateParts;
-        if (dateStr.includes('/')) {
-            dateParts = dateStr.split('/');
-            const month = parseInt(dateParts[0]) - 1;
-            const day = parseInt(dateParts[1]);
-            let year = parseInt(dateParts[2]);
-            if (year < 100) year += 2000;
-            
-            const timeLower = timeStr.toLowerCase();
-            const isPM = timeLower.includes('pm');
-            const isAM = timeLower.includes('am');
-            
-            const timeOnly = timeLower.replace(/am|pm/g, '').trim();
-            const [hourStr, minuteStr] = timeOnly.split(':');
-            let hour = parseInt(hourStr);
-            const minute = parseInt(minuteStr) || 0;
-            
-            if (isPM && hour < 12) hour += 12;
-            if (isAM && hour === 12) hour = 0;
-            
-            const combined = new Date(year, month, day, hour, minute, 0, 0);
-            return combined.toISOString();
+        let year, month, day;
+        
+        // Handle ISO format (YYYY-MM-DD) or (YYYY-M-D)
+        if (dateStr.includes('-')) {
+            const parts = dateStr.split('-');
+            year = parseInt(parts[0]);
+            month = parseInt(parts[1]) - 1;
+            day = parseInt(parts[2]);
         }
-        return null;
+        // Handle US format (M/D/YYYY) or (MM/DD/YYYY)
+        else if (dateStr.includes('/')) {
+            const parts = dateStr.split('/');
+            month = parseInt(parts[0]) - 1;
+            day = parseInt(parts[1]);
+            year = parseInt(parts[2]);
+            if (year < 100) year += 2000;
+        }
+        else {
+            console.error('Unrecognized date format:', dateStr);
+            return null;
+        }
+        
+        // Parse time
+        const timeLower = timeStr.toLowerCase();
+        const isPM = timeLower.includes('pm');
+        const isAM = timeLower.includes('am');
+        
+        const timeOnly = timeLower.replace(/am|pm/g, '').trim();
+        const [hourStr, minuteStr] = timeOnly.split(':');
+        let hour = parseInt(hourStr);
+        const minute = parseInt(minuteStr) || 0;
+        
+        if (isPM && hour < 12) hour += 12;
+        if (isAM && hour === 12) hour = 0;
+        
+        // Use Date.UTC to create date in UTC timezone directly
+        // This prevents timezone conversion issues that cause dates to shift
+        const combined = new Date(Date.UTC(year, month, day, hour, minute, 0, 0));
+        return combined.toISOString();
     } catch (error) {
-        console.error('Error combining date and time:', error);
+        console.error('Error combining date and time:', error, 'dateStr:', dateStr, 'timeStr:', timeStr);
         return null;
     }
 }
@@ -369,7 +387,8 @@ function renderCalendarView() {
     // Current month days
     for (let day = 1; day <= daysInMonth; day++) {
         const currentDate = new Date(year, month, day);
-        const dateKey = currentDate.toISOString().split('T')[0];
+        // Create date key in YYYY-MM-DD format without timezone conversion
+        const dateKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
         const dayAppointments = adminState.appointmentsByDate[dateKey] || [];
         const hasAppointments = dayAppointments.length > 0;
         const isToday = isSameDay(currentDate, adminState.today);
@@ -430,7 +449,11 @@ function selectCalendarDate(date) {
 }
 
 function showDateAppointments(date) {
-    const dateKey = date.toISOString().split('T')[0];
+    // Create date key without timezone conversion
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    const day = date.getDate();
+    const dateKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     const appointments = adminState.appointmentsByDate[dateKey] || [];
     
     if (appointments.length === 0) {

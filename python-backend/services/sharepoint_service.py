@@ -22,6 +22,9 @@ class SharePointService:
             authority=self.authority,
             client_credential=self.client_secret
         )
+        
+        # Cache for site ID (looked up once and reused)
+        self._cached_site_id = None
     
     def get_access_token(self):
         """Get Microsoft Graph API access token"""
@@ -41,9 +44,8 @@ class SharePointService:
             token = self.get_access_token()
             headers = {'Authorization': f'Bearer {token}'}
             
-            # Always look up site ID from URL to ensure correct format
-            # Microsoft Graph site IDs need to be in format: hostname,siteId,webId
-            site_id = self._get_site_id()
+            # Get cached site ID (only looks up once)
+            site_id = self._get_cached_site_id()
             
             url = f"https://graph.microsoft.com/v1.0/sites/{site_id}/drive/root:{file_path}:/content"
             response = requests.get(url, headers=headers)
@@ -66,8 +68,8 @@ class SharePointService:
                 token = self.get_access_token()
                 headers = {'Authorization': f'Bearer {token}'}
                 
-                # Always look up site ID from URL to ensure correct format
-                site_id = self._get_site_id()
+                # Get cached site ID (only looks up once)
+                site_id = self._get_cached_site_id()
                 
                 url = f"https://graph.microsoft.com/v1.0/sites/{site_id}/drive/root:{file_path}:/content"
                 response = requests.put(url, headers=headers, data=content)
@@ -97,6 +99,16 @@ class SharePointService:
                     time.sleep(wait_time)
         
         raise Exception(f"Failed to upload file after {max_retries} attempts")
+    
+    def _get_cached_site_id(self):
+        """Get SharePoint site ID (cached after first lookup)"""
+        if self._cached_site_id:
+            return self._cached_site_id
+        
+        # Look up site ID and cache it
+        self._cached_site_id = self._get_site_id()
+        print(f"Cached SharePoint site ID: {self._cached_site_id}")
+        return self._cached_site_id
     
     def _get_site_id(self):
         """Look up SharePoint site ID from URL"""
@@ -167,7 +179,17 @@ class SharePointService:
         """Parse CSV file content and return as list of dictionaries"""
         try:
             csv_file = BytesIO(content)
-            df = pd.read_csv(csv_file)
+            
+            # Try UTF-8 first, then fall back to other encodings
+            try:
+                df = pd.read_csv(csv_file, encoding='utf-8')
+            except UnicodeDecodeError:
+                csv_file.seek(0)
+                try:
+                    df = pd.read_csv(csv_file, encoding='latin-1')
+                except:
+                    csv_file.seek(0)
+                    df = pd.read_csv(csv_file, encoding='cp1252')
             
             # Convert to list of dictionaries
             records = df.to_dict('records')
@@ -187,9 +209,10 @@ class SharePointService:
     def records_to_csv_bytes(self, records, fieldnames):
         """Convert list of dictionaries to CSV bytes"""
         import csv
+        from io import StringIO
         
-        output = BytesIO()
-        output.write(b'\xef\xbb\xbf')  # UTF-8 BOM
+        # Use StringIO for text-based CSV writing
+        output = StringIO()
         
         writer = csv.DictWriter(
             output,
@@ -201,5 +224,34 @@ class SharePointService:
         writer.writeheader()
         writer.writerows(records)
         
-        return output.getvalue()
+        # Convert to bytes with UTF-8 BOM
+        csv_string = output.getvalue()
+        return '\ufeff'.encode('utf-8') + csv_string.encode('utf-8')
+    
+    def records_to_excel_bytes(self, records, fieldnames):
+        """Convert list of dictionaries to Excel bytes"""
+        from openpyxl import Workbook
+        from io import BytesIO
+        
+        # Create a new workbook
+        workbook = Workbook()
+        sheet = workbook.active
+        
+        # Write header
+        sheet.append(fieldnames)
+        
+        # Write data rows
+        for record in records:
+            row = []
+            for field in fieldnames:
+                value = record.get(field, '')
+                row.append(value)
+            sheet.append(row)
+        
+        # Save to bytes
+        excel_file = BytesIO()
+        workbook.save(excel_file)
+        excel_file.seek(0)
+        
+        return excel_file.read()
 

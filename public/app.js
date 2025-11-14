@@ -53,16 +53,17 @@ function showStep(step) {
 
 function formatDateTime(isoString) {
     const date = new Date(isoString);
+    // Use UTC methods to avoid timezone conversion
     const options = {
         weekday: 'long',
         year: 'numeric',
         month: 'long',
         day: 'numeric',
-        hour: 'numeric',
-        minute: '2-digit',
-        hour12: true
+        timeZone: 'UTC'
     };
-    return date.toLocaleString('en-US', options);
+    const dateStr = date.toLocaleString('en-US', options);
+    const timeStr = formatTime(isoString);
+    return `${dateStr} at ${timeStr}`;
 }
 
 function formatDate(isoString) {
@@ -71,19 +72,22 @@ function formatDate(isoString) {
         weekday: 'long',
         month: 'long',
         day: 'numeric',
-        year: 'numeric'
+        year: 'numeric',
+        timeZone: 'UTC'
     };
     return date.toLocaleString('en-US', options);
 }
 
 function formatTime(isoString) {
     const date = new Date(isoString);
-    const options = {
-        hour: 'numeric',
-        minute: '2-digit',
-        hour12: true
-    };
-    return date.toLocaleString('en-US', options);
+    // Use UTC time directly to avoid timezone conversion
+    // This ensures times display consistently as business hours (9AM-5PM)
+    const hours = date.getUTCHours();
+    const minutes = date.getUTCMinutes();
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    const displayHours = hours % 12 || 12;
+    const displayMinutes = minutes.toString().padStart(2, '0');
+    return `${displayHours}:${displayMinutes} ${ampm}`;
 }
 
 function groupSlotsByDate(slots) {

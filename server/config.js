@@ -25,7 +25,7 @@ module.exports = {
     startHour: 9, // 9 AM
     endHour: 17, // 5 PM
     intervalMinutes: 30,
-    daysAhead: 8, // Number of days to show for booking (one week)
+    daysAhead: 15, // Number of days to show for booking
   },
   
   // CORS Configuration
