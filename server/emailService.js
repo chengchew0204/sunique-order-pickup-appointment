@@ -1,6 +1,5 @@
-const { ClientSecretCredential } = require('@azure/identity');
+const msal = require('@azure/msal-node');
 const { Client } = require('@microsoft/microsoft-graph-client');
-const { TokenCredentialAuthenticationProvider } = require('@microsoft/microsoft-graph-client/authProviders/azureTokenCredentials');
 
 class EmailService {
   constructor() {
@@ -20,18 +19,29 @@ class EmailService {
 
   initializeClient() {
     try {
-      const credential = new ClientSecretCredential(
-        this.tenantId,
-        this.clientId,
-        this.clientSecret
-      );
+      const msalConfig = {
+        auth: {
+          clientId: this.clientId,
+          authority: `https://login.microsoftonline.com/${this.tenantId}`,
+          clientSecret: this.clientSecret,
+        }
+      };
 
-      const authProvider = new TokenCredentialAuthenticationProvider(credential, {
-        scopes: ['https://graph.microsoft.com/.default']
-      });
+      this.msalClient = new msal.ConfidentialClientApplication(msalConfig);
 
-      this.graphClient = Client.initWithMiddleware({
-        authProvider: authProvider
+      this.graphClient = Client.init({
+        authProvider: async (done) => {
+          try {
+            const tokenRequest = {
+              scopes: ['https://graph.microsoft.com/.default'],
+            };
+            const response = await this.msalClient.acquireTokenByClientCredential(tokenRequest);
+            done(null, response.accessToken);
+          } catch (error) {
+            console.error('Email authentication error:', error);
+            done(error, null);
+          }
+        }
       });
     } catch (error) {
       console.error('Error initializing Microsoft Graph client:', error);
