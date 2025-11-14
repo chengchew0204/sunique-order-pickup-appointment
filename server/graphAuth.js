@@ -43,22 +43,32 @@ async function getFileContent(siteUrl, filePath) {
   try {
     const client = getAuthenticatedClient();
     
-    // Extract hostname and site path from full URL
-    const urlMatch = siteUrl.match(/https?:\/\/([^\/]+)\/sites\/([^\/]+)/);
-    if (!urlMatch) {
-      throw new Error('Invalid SharePoint site URL format');
-    }
-    const hostname = urlMatch[1];
-    const sitePath = urlMatch[2];
+    let siteId;
     
-    // First, get the site to get its ID
-    const site = await client
-      .api(`/sites/${hostname}:/sites/${sitePath}`)
-      .get();
+    // Use direct site ID if provided (faster, more reliable)
+    if (config.sharepoint.siteId) {
+      siteId = config.sharepoint.siteId;
+      console.log('Using direct site ID:', siteId);
+    } else {
+      // Fallback: Extract hostname and site path from full URL
+      const urlMatch = siteUrl.match(/https?:\/\/([^\/]+)\/sites\/([^\/]+)/);
+      if (!urlMatch) {
+        throw new Error('Invalid SharePoint site URL format');
+      }
+      const hostname = urlMatch[1];
+      const sitePath = urlMatch[2];
+      
+      // Look up the site to get its ID
+      console.log('Looking up site ID for:', hostname, sitePath);
+      const site = await client
+        .api(`/sites/${hostname}:/sites/${sitePath}`)
+        .get();
+      siteId = site.id;
+    }
     
     // Get file content using site ID and file path
     const response = await client
-      .api(`/sites/${site.id}/drive/root:${filePath}:/content`)
+      .api(`/sites/${siteId}/drive/root:${filePath}:/content`)
       .get();
     
     return response;
@@ -76,22 +86,30 @@ async function uploadFileContent(siteUrl, filePath, content) {
     try {
       const client = getAuthenticatedClient();
       
-      // Extract hostname and site path from full URL
-      const urlMatch = siteUrl.match(/https?:\/\/([^\/]+)\/sites\/([^\/]+)/);
-      if (!urlMatch) {
-        throw new Error('Invalid SharePoint site URL format');
-      }
-      const hostname = urlMatch[1];
-      const sitePath = urlMatch[2];
+      let siteId;
       
-      // First, get the site to get its ID
-      const site = await client
-        .api(`/sites/${hostname}:/sites/${sitePath}`)
-        .get();
+      // Use direct site ID if provided (faster, more reliable)
+      if (config.sharepoint.siteId) {
+        siteId = config.sharepoint.siteId;
+      } else {
+        // Fallback: Extract hostname and site path from full URL
+        const urlMatch = siteUrl.match(/https?:\/\/([^\/]+)\/sites\/([^\/]+)/);
+        if (!urlMatch) {
+          throw new Error('Invalid SharePoint site URL format');
+        }
+        const hostname = urlMatch[1];
+        const sitePath = urlMatch[2];
+        
+        // Look up the site to get its ID
+        const site = await client
+          .api(`/sites/${hostname}:/sites/${sitePath}`)
+          .get();
+        siteId = site.id;
+      }
       
       // Upload file content using site ID and file path
       await client
-        .api(`/sites/${site.id}/drive/root:${filePath}:/content`)
+        .api(`/sites/${siteId}/drive/root:${filePath}:/content`)
         .put(content);
       
       if (attempt > 1) {

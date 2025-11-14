@@ -15,6 +15,7 @@ module.exports = {
   // SharePoint Configuration
   sharepoint: {
     siteUrl: process.env.SHAREPOINT_SITE_URL,
+    siteId: process.env.SHAREPOINT_SITE_ID || process.env.SHAREPOINT_OBJECT_ID, // Direct site ID (faster, bypasses lookup)
     ordersFilePath: process.env.ORDERS_FILE_PATH || process.env.CSV_FILE_PATH, // Read orders from this file
     appointmentsFilePath: process.env.APPOINTMENTS_FILE_PATH || '/Sunique Wiki/appointments.csv', // Write appointments to this file
   },
